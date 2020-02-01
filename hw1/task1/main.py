@@ -1,4 +1,5 @@
 import pandas as pd
+import sys
 import numpy as np
 
 
@@ -92,7 +93,8 @@ def trip_stat(path=None, data=None):
 
 
 def _main():
-    _, data = general_stats('../../data/green_tripdata_2013-11.csv')
+    csv_path = sys.argv[1]
+    _, data = general_stats(csv_path)
     missing_dates(data=data)
     usage_stat(data=data)
     trip_stat(data=data)
