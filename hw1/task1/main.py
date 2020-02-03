@@ -28,10 +28,6 @@ def general_stats(path):
     invalid_rows = missing_data_indices.shape
     gen_stat['invalid_rows'] = invalid_rows
 
-    missing_dates = pd.DataFrame(data['Lpep_dropoff_datetime'][missing_data_indices])
-    missing_dates.columns = ['missing_dates']
-    missing_dates.to_csv('missing_dates.csv', index=False)
-
     gen_stat = pd.DataFrame(gen_stat, index=[0])
     gen_stat.to_csv('gen_stat.csv')
     return gen_stat, data
