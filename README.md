@@ -10,7 +10,12 @@
  trip duration
  * usage_stat.csv - trip count per day
  
- To launch this script launch main file with python and give file path via arguments.  
+ To launch this script launch main file with python and give file path via arguments.
+   ```Shell    
+  python main.py [-dir] file_paths   
+  ```  
+ If `-dir` then instead of file path use path to directory with csv files.  
+  
   More data: https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.page
      
     
