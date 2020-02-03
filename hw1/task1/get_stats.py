@@ -7,7 +7,7 @@ def general_stats(path):
     data = pd.read_csv(path)
     gen_stat['mean_cost'] = data['Total_amount'].mean()
     data['lpep_pickup_datetime'] = data['lpep_pickup_datetime'].astype(np.datetime64)
-    data['Lpep_dropoff_datetime'] = data['Lpep_dropoff_datetime'].astype(np.datetime64)
+    data['Lpep_dropoff_datetime'] = data['Lpep_dr   opoff_datetime'].astype(np.datetime64)
     data['trip_duration'] = data['Lpep_dropoff_datetime'] - data['lpep_pickup_datetime']
     longest = data['trip_duration'].max()
     gen_stat['longest_ride'] = longest
@@ -20,12 +20,6 @@ def general_stats(path):
     gen_stat['max_count'] = max_count
     gen_stat['max_count_start'] = max_count_start
     gen_stat['max_count_end'] = max_count_end
-
-    missing_data_indices = np.append(np.where(data['Passenger_count'] == 0),
-                                     np.unique(np.append(np.where(data['Pickup_longitude'] == 0),
-                                               np.where(data['Dropoff_longitude'] == 0))))
-    invalid_rows = missing_data_indices.shape
-    gen_stat['invalid_rows'] = invalid_rows
 
     gen_stat = pd.DataFrame(gen_stat, index=[0])
     return gen_stat, data
@@ -40,8 +34,7 @@ def missing_dates(path=None, data=None):
         return None
 
     missing_data_indices = np.append(np.where(data['Passenger_count'] == 0),
-                                     np.unique(np.append(np.where(data['Pickup_longitude'] == 0),
-                                               np.where(data['Dropoff_longitude'] == 0))))
+                                     np.where(data['Trip_distance'] == 0))
     missing_dates = pd.DataFrame(data['Lpep_dropoff_datetime'][missing_data_indices])
     missing_dates.columns = ['missing_dates']
     return missing_dates, data
