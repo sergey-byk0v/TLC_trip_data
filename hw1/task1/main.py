@@ -21,20 +21,20 @@ def many_paths(paths):
                 general_stat, data = stat.general_stats(path)
             else:
                 raise v
-        # missing_dates, _ = stat.missing_dates(data=data)
-        # usage_stat, _ = stat.usage_stat(data=data)
-        # trip_stat, _ = stat.trip_trip_stat(data=data)
+        missing_dates, _ = stat.missing_dates(data=data)
+        usage_stat, _ = stat.usage_stat(data=data)
+        trip_stat, _ = stat.trip_stat(data=data)
 
         rows_amount.append(data.shape[0])
         general_stats.append(general_stat)
-        # missing_stats.append(missing_dates)
-        # usage_stats.append(usage_stats)
-        # trip_stats.append(trip_stat)
+        missing_stats.append(missing_dates)
+        usage_stats.append(usage_stat)
+        trip_stats.append(trip_stat)
 
     avrg.average_gen(general_stats, rows_amount)
-    # avrg.average_missing(missing_stats)
-    # avrg.average_usage(usage_stats)
-    # avrg.average_trip(trip_stats)
+    avrg.average_missing(missing_stats)
+    avrg.average_usage(usage_stats)
+    avrg.average_trip(trip_stats)
 
 
 def _main():
