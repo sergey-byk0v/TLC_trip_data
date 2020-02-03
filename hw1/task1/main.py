@@ -1,12 +1,11 @@
-import pandas as pd
 import sys
-import numpy as np
+import glob
 import subprocess
 import get_stats as stat
 import averaging as avrg
 
 
-def many_paths(paths):
+def many_files(paths):
     general_stats = []
     missing_stats = []
     usage_stats = []
@@ -38,8 +37,12 @@ def many_paths(paths):
 
 
 def _main():
-    csv_paths = sys.argv[1:]
-    many_paths(csv_paths)
+    if sys.argv[1] == '-dir':
+        csv_paths = glob.glob(sys.argv[2] + '*.csv')
+    else:
+        csv_paths = sys.argv[1:]
+
+    many_files(csv_paths)
 
 
 if __name__ == '__main__':
