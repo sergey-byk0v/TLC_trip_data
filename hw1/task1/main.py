@@ -52,7 +52,7 @@ def many_files(paths):
     avrg.average_usage(usage_stats)
     avrg.average_trip(trip_stats)
 
-
+    
 def _main():
     if sys.argv[1] == '-dir':
         if sys.argv[2][-1] == '/':
