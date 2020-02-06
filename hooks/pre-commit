@@ -1,0 +1,14 @@
+#!/usr/bin/env python3
+import sys
+import git
+
+# get branch name
+repo = git.Repo(search_parent_directories=True)
+branch = repo.active_branch
+print(branch.name)
+branch_name = branch.name
+
+
+if branch_name == 'master':
+	print("Can't commit to master.")
+	sys.exit(1)
