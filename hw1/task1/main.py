@@ -32,10 +32,12 @@ def many_files(paths):
                                   'max_count_start': [],
                                   'max_count_end': [],
                                   'invalid_rows': []})
-    missing_stats = pd.DataFrame({})
-    usage_stats = []
-    trip_stats = []
-    rows_amount = []
+    missing_stats = pd.DataFrame({'missing_dates': []})
+    usage_stats = pd.DataFrame({'date': [],
+                                'count': []})
+    trip_stats = pd.DataFrame({'date': [],
+                               'average_passenger': [],
+                               'mean_trip_duration': []})
     results = []
 
     p = multiprocessing.Pool(processes=4)
@@ -47,16 +49,17 @@ def many_files(paths):
     for result in results:
         result = result.get()
         data_len, general_stat, missing_dates, usage_stat, trip_stat = result[0]
-        rows_amount.append(data_len)
-        general_stats.append(general_stat)
-        missing_stats.append(missing_dates)
-        usage_stats.append(usage_stat)
-        trip_stats.append(trip_stat)
+        general_stat['data_len'] = [data_len]
+        general_stats = general_stats.append(general_stat, sort=False)
+        missing_stats = missing_stats.append(missing_dates, sort=False)
+        usage_stats = usage_stats.append(usage_stat, sort=False)
+        trip_stats = trip_stats.append(trip_stat, sort=False)
+    print(general_stats.shape)
 
-    avrg.average_gen(general_stats, rows_amount)
-    avrg.average_missing(missing_stats)
-    avrg.average_usage(usage_stats)
-    avrg.average_trip(trip_stats)
+    # avrg.average_gen(general_stats)
+    # avrg.average_missing(missing_stats)
+    # avrg.average_usage(usage_stats)
+    # avrg.average_trip(trip_stats)
 
     
 def _main():

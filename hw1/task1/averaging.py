@@ -38,6 +38,10 @@ def average_gen(general_stats, rows_amount):
     return avg_stat
 
 
+def new_average_gen(general_stats):
+    pass
+
+
 def average_missing(missing_stats):
     misses = pd.Series([])
     for miss in missing_stats:
