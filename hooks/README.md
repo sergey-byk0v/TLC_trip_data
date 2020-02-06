@@ -6,4 +6,4 @@ Also they set rules for commit messages:
 3. Only english 
 
 #### Installation
-To install packages and make hooks executable just launch ``prepare.sh`` file.  
+To install packages and move them to ```./git``` just launch ``prepare.sh`` file.  
