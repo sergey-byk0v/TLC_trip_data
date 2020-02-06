@@ -3,6 +3,7 @@ import glob
 import subprocess
 import get_stats as stat
 import averaging as avrg
+import pandas as pd
 import multiprocessing
 
 
@@ -25,8 +26,13 @@ def many_files(paths):
     if len(paths) == 0:
         raise FileExistsError('There is no files')
 
-    general_stats = []
-    missing_stats = []
+    general_stats = pd.DataFrame({'mean_cost': [],
+                                  'longest_ride': [],
+                                  'max_count': [],
+                                  'max_count_start': [],
+                                  'max_count_end': [],
+                                  'invalid_rows': []})
+    missing_stats = pd.DataFrame({})
     usage_stats = []
     trip_stats = []
     rows_amount = []

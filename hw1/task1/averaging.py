@@ -1,5 +1,4 @@
 import pandas as pd
-import sys
 import numpy as np
 
 
@@ -29,7 +28,7 @@ def average_gen(general_stats, rows_amount):
     avg_stat = {'mean_cost': mean_cost / data_len,
                 'longest_ride': longest_ride,
                 'max_count': max_count,
-                'max_count_statr': max_count_start,
+                'max_count_start': max_count_start,
                 'max_count_end': max_count_end,
                 'invalid_rows': invalid_rows}
 
