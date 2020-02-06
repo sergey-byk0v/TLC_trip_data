@@ -6,6 +6,8 @@ bashCommand = 'git branch'
 process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 output, error = process.communicate()
 branch_name = output[2:-1]
+print(branch_name.decode('utf-8'))
+sys.exit(1)
 
 if branch_name == b'master':
 	print("Can't push to master branch")
