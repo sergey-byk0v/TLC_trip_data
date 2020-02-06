@@ -2,20 +2,20 @@
 import sys
 import re
 import subprocess
+import git
 
 args = sys.argv
 
 # get branch name
-bashCommand = 'git branch'
-process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-output, error = process.communicate()
+repo = git.Repo(search_parent_directories=True)
+branch = repo.active_branch
+print(branch.name)
+branch_name = branch.name
 
 
-if '* master' in output.decode('utf-8').split('\n'):
+if branch_name == 'master':
 	print("Can't push to master.")
 	sys.exit(1)
-else:
-	branch_name = output.decode('utf-8').split()[output.decode('utf-8').split().index('*') + 1]
 
 # get list of pushed files
 get_list_of_files = 'git diff --name-only ' + args[1] + '/' + branch_name
@@ -26,7 +26,7 @@ output = output.decode('utf-8')
 # checking .py files
 for file_name in output.split():
 	if bool(re.match(r'.*\.py$', file_name)):
-		check_compile = 'python3 -m py_compile ' + file_name
+		check_compile = 'python -m py_compile ' + file_name
 		process = subprocess.Popen(check_compile.split(),stdout=subprocess.PIPE)
 		output = process.wait()
 		if bool(output):

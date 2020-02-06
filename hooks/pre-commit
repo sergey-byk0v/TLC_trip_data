@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-import sys, os
-import subprocess
+import sys
+import git
 
-bashCommand = 'git branch'
-process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-output, error = process.communicate()
-branch_name = output[2:-1]
-print(branch_name.decode('utf-8'))
-sys.exit(1)
+# get branch name
+repo = git.Repo(search_parent_directories=True)
+branch = repo.active_branch
+print(branch.name)
+branch_name = branch.name
 
-if branch_name == b'master':
-	print("Can't push to master branch")
+
+if branch_name == 'master':
+	print("Can't commit to master.")
 	sys.exit(1)
