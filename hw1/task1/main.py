@@ -1,99 +1,77 @@
-import pandas as pd
 import sys
-import numpy as np
+import glob
+import subprocess
+import get_stats as stat
+import averaging as avrg
+import pandas as pd
+import multiprocessing
 
 
-def general_stats(path):
-    gen_stat = {}
-    data = pd.read_csv(path)
-    gen_stat['mean_cost'] = data['Total_amount'].mean()
-    data['lpep_pickup_datetime'] = data['lpep_pickup_datetime'].astype(np.datetime64)
-    data['Lpep_dropoff_datetime'] = data['Lpep_dropoff_datetime'].astype(np.datetime64)
-    data['trip_duration'] = data['Lpep_dropoff_datetime'] - data['lpep_pickup_datetime']
-    longest = data['trip_duration'].max()
-    gen_stat['longest ride'] = longest
+def calc(path):
+    try:
+        general_stat, data = stat.general_stats(path)
+    except ValueError as v:
+        if subprocess.call(['sed', '-i', "'s/,,,//'", path]) == 0:
+            general_stat, data = stat.general_stats(path)
+        else:
+            raise v
+    missing_dates, _ = stat.missing_dates(data=data)
+    usage_stat, _ = stat.usage_stat(data=data)
+    trip_stat, _ = stat.trip_stat(data=data)
 
-    pickup_times = pd.DataFrame(data['lpep_pickup_datetime'])
-    pickup_times.index = pickup_times['lpep_pickup_datetime']
-    max_count_start = pickup_times['lpep_pickup_datetime'].resample('10T').count().idxmax()
-    max_count = pickup_times['lpep_pickup_datetime'].resample('10T').count().max()
-    max_count_end = max_count_start + np.timedelta64(10, 'm')
-    gen_stat['max_count'] = max_count
-    gen_stat['max_count_start'] = max_count_start
-    gen_stat['max_count_end'] = max_count_end
-
-    missing_data_indices = np.append(np.where(data['Passenger_count'] == 0),
-                                     np.unique(np.append(np.where(data['Pickup_longitude'] == 0),
-                                               np.where(data['Dropoff_longitude'] == 0))))
-    invalid_rows = missing_data_indices.shape
-    gen_stat['invalid_rows'] = invalid_rows
-
-    gen_stat = pd.DataFrame(gen_stat, index=[0])
-    gen_stat.to_csv('gen_stat.csv')
-    return gen_stat, data
+    return data.shape[0], general_stat, missing_dates, usage_stat, trip_stat
 
 
-def missing_dates(path=None, data=None):
-    if data is None and path is not None:
-        data = pd.read_csv(path)
-    elif path is None and data is not None:
-        data = data
-    else:
-        return None
+def many_files(paths):
+    if len(paths) == 0:
+        raise FileExistsError('There is no files')
 
-    missing_data_indices = np.append(np.where(data['Passenger_count'] == 0),
-                                     np.unique(np.append(np.where(data['Pickup_longitude'] == 0),
-                                               np.where(data['Dropoff_longitude'] == 0))))
-    missing_dates = pd.DataFrame(data['Lpep_dropoff_datetime'][missing_data_indices])
-    missing_dates.columns = ['missing_dates']
-    missing_dates.to_csv('missing_dates.csv', index=False)
+    general_stats = pd.DataFrame({'mean_cost': [],
+                                  'longest_ride': [],
+                                  'max_count': [],
+                                  'max_count_start': [],
+                                  'max_count_end': [],
+                                  'invalid_rows': []})
+    missing_stats = pd.DataFrame({'missing_dates': []})
+    usage_stats = pd.DataFrame({'date': [],
+                                'count': []})
+    trip_stats = pd.DataFrame({'date': [],
+                               'average_passenger': [],
+                               'mean_trip_duration': []})
+    results = []
 
-    return missing_dates, data
+    p = multiprocessing.Pool(processes=4)
+    for path in paths:
+        async_res = p.map_async(calc, [path])
+        results.append(async_res)
+    p.close()
+    p.join()
+    for result in results:
+        result = result.get()
+        data_len, general_stat, missing_dates, usage_stat, trip_stat = result[0]
+        general_stat['data_len'] = [data_len]
+        general_stats = general_stats.append(general_stat, sort=False)
+        missing_stats = missing_stats.append(missing_dates, sort=False)
+        usage_stats = usage_stats.append(usage_stat, sort=False)
+        trip_stats = trip_stats.append(trip_stat, sort=False)
+    print(general_stats.shape)
 
+    # avrg.average_gen(general_stats)
+    # avrg.average_missing(missing_stats)
+    # avrg.average_usage(usage_stats)
+    # avrg.average_trip(trip_stats)
 
-def usage_stat(path=None, data=None):
-    if data is None and path is not None:
-        data = pd.read_csv(path)
-    elif path is None and data is not None:
-        data = data
-    else:
-        return None
-    invalid_indices = np.logical_or(data['Pickup_longitude'] == 0, data['Dropoff_longitude'] == 0)
-    data['Lpep_dropoff_datetime'] = pd.to_datetime(data['Lpep_dropoff_datetime'])
-    valid_indices = np.logical_not(invalid_indices)
-    stat = data[np.logical_not(invalid_indices)].groupby(data['Lpep_dropoff_datetime'].dt.date)['VendorID'].count()
-    stat.index.name = 'date'
-    stat = pd.DataFrame(stat)
-    stat.columns = ['count']
-    stat.to_csv('usage_stat.csv')
-    return stat, data
-
-
-def trip_stat(path=None, data=None):
-    if data is None and path is not None:
-        data = pd.read_csv(path)
-    elif path is None and data is not None:
-        data = data
-    else:
-        return None
-    person_count = data['Passenger_count']
-    person_count.index = data['Lpep_dropoff_datetime'].astype(np.datetime64)
-    trip_stat = pd.DataFrame(person_count.resample('M').sum())
-    trip_duration = data['Passenger_count']
-    trip_duration.index = data['Lpep_dropoff_datetime'].astype(np.datetime64)
-    trip_stat['trip_duration'] = trip_duration.resample('M').mean()
-    trip_stat.index.name = 'date'
-    trip_stat.columns = ['average_passenger', 'mean_trip_duration']
-    trip_stat.to_csv('trip_stat.csv')
-    return trip_stat, data
-
-
+    
 def _main():
-    csv_path = sys.argv[1]
-    _, data = general_stats(csv_path)
-    missing_dates(data=data)
-    usage_stat(data=data)
-    trip_stat(data=data)
+    if sys.argv[1] == '-dir':
+        if sys.argv[2][-1] == '/':
+            csv_paths = glob.glob(sys.argv[2] + '*.csv')
+        else:
+            csv_paths = glob.glob(sys.argv[2] + '/' + '*.csv')
+    else:
+        csv_paths = sys.argv[1:]
+
+    many_files(csv_paths)
 
 
 if __name__ == '__main__':
