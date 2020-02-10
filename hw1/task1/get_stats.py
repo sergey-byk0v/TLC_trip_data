@@ -54,24 +54,23 @@ def general_stats(path):
 
     data['lpep_dropoff_datetime'] = data['lpep_dropoff_datetime'].apply(to_datetime)
     invalid_rows += data['lpep_dropoff_datetime'].isna().sum()
+    data = data.dropna(subset=['lpep_dropoff_datetime'])
 
     data['lpep_pickup_datetime'] = data['lpep_pickup_datetime'].apply(to_datetime)
     invalid_rows += data['lpep_pickup_datetime'].isna().sum()
+    data = data.dropna(subset=['lpep_pickup_datetime'])
 
     data['trip_distance'] = data['trip_distance'].apply(to_float)
     invalid_rows += data['trip_distance'].isna().sum()
+    data = data.dropna(subset=['trip_distance'])
 
     data['total_amount'] = data['total_amount'].apply(to_float)
     invalid_rows += data['total_amount'].isna().sum()
+    data = data.dropna(subset=['total_amount'])
 
     data['passenger_count'] = data['passenger_count'].apply(to_int)
     invalid_rows += data['passenger_count'].isna().sum()
-
-    data = data.dropna(subset=['lpep_pickup_datetime',
-                               'lpep_dropoff_datetime',
-                               'passenger_count',
-                               'trip_distance',
-                               'total_amount'])
+    data = data.dropna(subset=['passenger_count'])
 
     gen_stat['mean_cost'] = data['total_amount'].mean()
     data['trip_duration'] = data['lpep_dropoff_datetime'] - data['lpep_pickup_datetime']
@@ -89,6 +88,7 @@ def general_stats(path):
         gen_stat['max_count_end'] = max_count_end
 
     gen_stat['invalid_rows'] = invalid_rows
+    gen_stat['count'] = data.shape[0]
     gen_stat = pd.DataFrame(gen_stat, index=[0])
     return gen_stat
 
