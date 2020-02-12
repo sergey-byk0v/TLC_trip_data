@@ -99,7 +99,6 @@ def usage_stat(path=None, data=None):
     else:
         return None
 
-    print(data.shape)
     required_columns = ['lpep_pickup_datetime',
                         'lpep_dropoff_datetime',
                         'total_amount',
