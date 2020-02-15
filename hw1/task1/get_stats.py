@@ -41,9 +41,7 @@ def general_stats(path=None, data=None):
                         'trip_distance']
 
     invalid_rows = np.any(data[required_columns].isna(), axis=1).sum()
-
     clean_data = data[required_columns].dropna()
-
     gen_stat['mean_cost'] = clean_data['total_amount'].mean()
     clean_data['trip_duration'] = clean_data['lpep_dropoff_datetime'] - clean_data['lpep_pickup_datetime']
     longest = clean_data['trip_duration'].max()
