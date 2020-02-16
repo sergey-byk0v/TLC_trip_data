@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import get_stats as stat
 
 
 def average_gen(general_stats):
@@ -20,24 +21,29 @@ def average_gen(general_stats):
     return avg_data
 
 
+def get_dates_outside(borders):
+    min_index, max_index = 0, 1
+    outside_dates = []
+    current_max = pd.to_datetime('01-01-00')
+    for row in borders.values:
+        print(current_max)
+        print(row[min_index])
+        if current_max < row[min_index]:
+            outside_dates.append(pd.date_range(current_max, row[min_index], freq='D'))
+            print(row)
+        current_max = row[max_index]
+    print(len(outside_dates))
+
+
 def average_missing(missing_stats):
+    borders = missing_stats[['min', 'max']]
+    borders = borders.dropna()
+    print(f'Missing stats: {missing_stats}')
+    get_dates_outside(borders)
+    # print(borders.sort_values(by=['min']))
     misses = pd.DataFrame(columns=['missing_dates'])
     misses['missing_dates'] = missing_stats['missing_dates'].unique()
     return misses
-
-
-def average_trip(trip_stats):
-    avg_data = pd.DataFrame(columns=['month',
-                                     'passenger_count',
-                                     'trip_distance'])
-    if trip_stats.shape[0] == 0:
-        return avg_data
-    avg_data['trip_distance'] = trip_stats['trip_distance'].values
-    avg_data['month'] = pd.Series(trip_stats.index).apply(lambda i: i[0])
-    avg_data['passenger_count'] = pd.Series(trip_stats.index).apply(lambda i: i[1])
-
-    avg_data = avg_data.groupby(['month', 'passenger_count'])['trip_distance'].mean()
-    return avg_data
 
 
 def average_usage(usage_stats):
@@ -46,3 +52,19 @@ def average_usage(usage_stats):
     avg_data.index.name = 'date'
 
     return pd.DataFrame(avg_data)
+
+
+def average_trip(trip_stats):
+    avg_data = pd.DataFrame(columns=['month',
+                                     'passenger_count',
+                                     'trip_duration'])
+    if trip_stats.shape[0] == 0:
+        return avg_data
+
+    avg_data['trip_duration'] = pd.to_timedelta(trip_stats['trip_duration']).dt.total_seconds().values
+    avg_data['month'] = pd.Series(trip_stats.index).apply(lambda i: i[0])
+    avg_data['passenger_count'] = pd.Series(trip_stats.index).apply(lambda i: i[1])
+    avg_data = avg_data.groupby(['month', 'passenger_count'])['trip_duration'].mean()
+    avg_data = pd.to_timedelta(avg_data.apply(int), unit='s').apply(stat.get_time)
+    return avg_data
+

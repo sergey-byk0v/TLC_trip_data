@@ -8,17 +8,11 @@ import multiprocessing
 
 
 def calc(path):
-    try:
-        general_stat = stat.general_stats(path)
-    except ValueError as v:
-        if subprocess.call(['sed', '-i', 's/,,,//', path]) == 0:
-            general_stat, data = stat.general_stats(path)
-        else:
-            raise v
-    missing_dates = stat.missing_dates(path)
-    usage_stat = stat.usage_stat(path)
-    trip_stat = stat.trip_stat(path)
-
+    data = stat.read_value_data(path)
+    general_stat = stat.general_stats(data)
+    missing_dates = stat.missing_dates(data, return_min_max=True)
+    usage_stat = stat.usage_stat(data)
+    trip_stat = stat.trip_stat(data)
     return general_stat, missing_dates, usage_stat, trip_stat
 
 
@@ -32,9 +26,9 @@ def many_files(paths):
                                           'max_count_start',
                                           'max_count_end',
                                           'invalid_rows'])
-    missing_stats = pd.DataFrame(columns=['missing_dates'])
+    missing_stats = pd.DataFrame(columns=['missing_dates', 'min', 'max'])
     usage_stats = pd.DataFrame(columns=['count'])
-    trip_stats = pd.DataFrame(columns=['trip_distance'])
+    trip_stats = pd.DataFrame(columns=['trip_duration'])
     results = []
 
     p = multiprocessing.Pool(processes=4)
