@@ -1,2 +1,2 @@
-,mean_cost,longest_ride,max_count,max_count_statr,max_count_end,invalid_rows
-0,15.382726259324118,0 days 23:59:58.000000000,350,2019-01-25 18:00:00,2019-01-25 18:10:00,21924
+mean_cost,longest_ride,max_count,max_count_start,max_count_end,invalid_rows
+15.769012700702465,5 days 13:54:48,339,2019-02-01 18:00:00,2019-02-01 18:10:00,20
