@@ -88,7 +88,7 @@ def general_stats(data, return_count=True):
     return gen_stat
 
 
-def missing_dates(data, return_min_max=False):
+def missing_dates(data, return_min_max=False, return_valid=False):
 
     clean_data = data.dropna()
     max_time = clean_data['lpep_pickup_datetime'].max()
@@ -97,7 +97,11 @@ def missing_dates(data, return_min_max=False):
     missing_date.name = 'missing_dates'
 
     valid_dates = clean_data['lpep_pickup_datetime'].apply(lambda i: i.date())
-    missing_date = pd.DataFrame(missing_date.apply(lambda s: None if s in valid_dates.values else s).dropna())
+    if return_valid:
+        missing_date.name = 'valid_dates'
+        missing_date = pd.DataFrame(missing_date.apply(lambda s: s if s in valid_dates.values else None).dropna())
+    else:
+        missing_date = pd.DataFrame(missing_date.apply(lambda s: None if s in valid_dates.values else s).dropna())
     if return_min_max:
         if len(missing_date) != 0:
             missing_date['min'] = None
@@ -126,7 +130,6 @@ def trip_stat(data):
     clean_data = data.dropna()
     clean_data['passenger_count'] = clean_data['passenger_count'].astype(int)
     clean_data['month'] = clean_data['lpep_pickup_datetime'].apply(lambda d: d.month)
-
 
     if len(clean_data['lpep_pickup_datetime']) != 0:
         trip_stat = pd.DataFrame(clean_data.groupby(['month', 'passenger_count'])['trip_duration'].mean())
