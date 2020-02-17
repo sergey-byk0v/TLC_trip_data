@@ -42,16 +42,23 @@ def average_usage(usage_stats):
 
 
 def average_trip(trip_stats):
-    avg_data = pd.DataFrame(columns=['month',
+    if len(trip_stats) == 0:
+        return pd.DataFrame(columns=['month',
                                      'passenger_count',
                                      'trip_duration'])
-    if trip_stats.shape[0] == 0:
-        return avg_data
 
+    avg_data = pd.DataFrame(columns=['trip_duration',
+                                     'count'])
+
+    avg_data['count'] = trip_stats['count']
+    avg_data.index = pd.MultiIndex.from_tuples(avg_data.index, names=['month', 'passenger_count'])
     avg_data['trip_duration'] = pd.to_timedelta(trip_stats['trip_duration']).dt.total_seconds().values
-    avg_data['month'] = pd.Series(trip_stats.index).apply(lambda i: i[0])
-    avg_data['passenger_count'] = pd.Series(trip_stats.index).apply(lambda i: i[1])
-    avg_data = avg_data.groupby(['month', 'passenger_count'])['trip_duration'].mean()
-    avg_data = pd.to_timedelta(avg_data.apply(int), unit='s').apply(stat.get_time)
-    return avg_data
+    avg_data['trip*count'] = avg_data['trip_duration'] * avg_data['count']
+    avg_data = avg_data.groupby(level=[0, 1]).sum()
+    avg_data['trip_duration'] = avg_data['trip*count'] / avg_data['count']
+    avg_data['trip_duration'] = pd.to_timedelta(avg_data['trip_duration'].apply(int), unit='s').apply(stat.get_time)
+
+    return avg_data.drop(columns=['count', 'trip*count'])
+
+
 

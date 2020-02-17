@@ -126,7 +126,7 @@ def usage_stat(data):
     return stat
 
 
-def trip_stat(data):
+def trip_stat(data, return_count=False):
     clean_data = data.dropna()
     clean_data['passenger_count'] = clean_data['passenger_count'].astype(int)
     clean_data['month'] = clean_data['lpep_pickup_datetime'].apply(lambda d: d.month)
@@ -134,6 +134,8 @@ def trip_stat(data):
     if len(clean_data['lpep_pickup_datetime']) != 0:
         trip_stat = pd.DataFrame(clean_data.groupby(['month', 'passenger_count'])['trip_duration'].mean())
         trip_stat['trip_duration'] = pd.to_timedelta(trip_stat['trip_duration'].apply(int), unit='s').apply(get_time)
+        if return_count:
+            trip_stat['count'] = clean_data.groupby(['month', 'passenger_count'])['trip_duration'].count()
     else:
         trip_stat = pd.DataFrame(['month', 'passenger_count', 'trip_duration'])
 
