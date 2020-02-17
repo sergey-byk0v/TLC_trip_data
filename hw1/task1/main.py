@@ -11,7 +11,7 @@ def calc(path):
     general_stat = stat.general_stats(data)
     missing_dates = stat.missing_dates(data, return_min_max=True, return_valid=True)
     usage_stat = stat.usage_stat(data)
-    trip_stat = stat.trip_stat(data)
+    trip_stat = stat.trip_stat(data, return_count=True)
     return general_stat, missing_dates, usage_stat, trip_stat
 
 
@@ -48,10 +48,10 @@ def many_files(paths):
         usage_stats = usage_stats.append(usage_stat, sort=False)
         trip_stats = trip_stats.append(trip_stat, sort=False)
 
-    #avrg.average_gen(general_stats).to_csv('./stats/gen_stat.csv', index=False)
+    avrg.average_gen(general_stats).to_csv('./stats/gen_stat.csv', index=False)
     avrg.average_missing(missing_stats).to_csv('./stats/missing_dates.csv', index=False)
-    #avrg.average_usage(usage_stats).to_csv('./stats/usage_stat.csv')
-    #avrg.average_trip(trip_stats).to_csv('./stats/trip_stat.csv', header=True)
+    avrg.average_usage(usage_stats).to_csv('./stats/usage_stat.csv')
+    avrg.average_trip(trip_stats).to_csv('./stats/trip_stat.csv', header=True)
 
 
 def _main():
