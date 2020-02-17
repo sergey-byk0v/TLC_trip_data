@@ -30,16 +30,18 @@ def many_files(paths):
     trip_stats = pd.DataFrame(columns=['trip_duration'])
     results = []
 
-    p = multiprocessing.Pool(processes=4)
+    def collect_result(result):
+        results.append(result)
+
+    p = multiprocessing.Pool()
     for path in paths:
-        async_res = p.map_async(calc, [path])
-        results.append(async_res)
+        p.apply_async(calc, [path], callback=collect_result)
+
     p.close()
     p.join()
 
     for result in results:
-        result = result.get()
-        general_stat, missing_dates, usage_stat, trip_stat = result[0]
+        general_stat, missing_dates, usage_stat, trip_stat = result
 
         general_stats = general_stats.append(general_stat, sort=False)
         missing_stats = missing_stats.append(missing_dates, sort=False)
