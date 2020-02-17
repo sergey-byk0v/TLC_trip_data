@@ -24,26 +24,27 @@ def average_gen(general_stats):
 def get_dates_outside(borders):
     min_index, max_index = 0, 1
     outside_dates = []
-    current_max = pd.to_datetime('01-01-00')
-    for row in borders.values:
-        print(current_max)
-        print(row[min_index])
+    current_max = borders.max()[0]
+    for row in borders.sort_values(by=['min']).values:
         if current_max < row[min_index]:
-            outside_dates.append(pd.date_range(current_max, row[min_index], freq='D'))
-            print(row)
+            outside_dates.append(np.array(pd.date_range(current_max, row[min_index], freq='D')))
         current_max = row[max_index]
-    print(len(outside_dates))
+
+    outside_dates = np.array(outside_dates).flatten()
+    return outside_dates
 
 
 def average_missing(missing_stats):
     borders = missing_stats[['min', 'max']]
     borders = borders.dropna()
-    print(f'Missing stats: {missing_stats}')
-    get_dates_outside(borders)
-    # print(borders.sort_values(by=['min']))
+    outside_dates = get_dates_outside(borders)
     misses = pd.DataFrame(columns=['missing_dates'])
-    misses['missing_dates'] = missing_stats['missing_dates'].unique()
-    return misses
+    misses['missing_dates'] = missing_stats['missing_dates']
+    misses['missing_dates'] = misses['missing_dates'].append(pd.Series(outside_dates), ignore_index=True)
+    misses = misses.dropna()
+    misses['missing_dates'] = np.unique(misses['missing_dates'])
+
+    return misses.dropna()
 
 
 def average_usage(usage_stats):

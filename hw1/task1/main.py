@@ -1,6 +1,5 @@
 import sys
 import glob
-import subprocess
 import get_stats as stat
 import averaging as avrg
 import pandas as pd

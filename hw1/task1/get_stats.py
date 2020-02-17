@@ -99,11 +99,17 @@ def missing_dates(data, return_min_max=False):
     valid_dates = clean_data['lpep_pickup_datetime'].apply(lambda i: i.date())
     missing_date = pd.DataFrame(missing_date.apply(lambda s: None if s in valid_dates.values else s).dropna())
     if return_min_max:
-        missing_date['min'] = [min_time]
-        missing_date['min'].iloc[0] = min_time
-        missing_date['max'] = None
-        missing_date['max'].iloc[0] = max_time
-
+        if len(missing_date) != 0:
+            missing_date['min'] = None
+            missing_date['min'].iloc[0] = min_time
+            missing_date['max'] = None
+            missing_date['max'].iloc[0] = max_time
+        else:
+            missing_date['min'] = None
+            missing_date['max'] = None
+            missing_date = missing_date.append({'missing_dates': None,
+                                                'min': min_time,
+                                                'max': max_time}, ignore_index=True)
     return missing_date
 
 
