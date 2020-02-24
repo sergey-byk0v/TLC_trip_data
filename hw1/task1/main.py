@@ -12,6 +12,7 @@ def calc(path):
     missing_dates = stat.missing_dates(data, return_min_max=True, return_valid=True)
     usage_stat = stat.usage_stat(data)
     trip_stat = stat.trip_stat(data, return_count=True)
+
     return general_stat, missing_dates, usage_stat, trip_stat
 
 
@@ -34,6 +35,7 @@ def many_files(paths):
         results.append(result)
 
     p = multiprocessing.Pool()
+
     for path in paths:
         p.apply_async(calc, [path], callback=collect_result)
 
