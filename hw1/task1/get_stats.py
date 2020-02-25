@@ -69,44 +69,68 @@ def general_stats(data, return_count=True):
     gen_stat = {}
     invalid_rows = np.any(data.isna(), axis=1).sum()
     clean_data = data.dropna().copy()
-
     gen_stat['mean_cost'] = clean_data['total_amount'].mean()
+
     datetime_durations = pd.to_timedelta(clean_data['trip_duration'], unit='s')
     trip_duration = datetime_durations.apply(get_time)
     clean_data.loc[:, 'trip_duration'] = trip_duration
+
     longest = get_time(clean_data['trip_duration'].max())
     gen_stat['longest_ride'] = longest
-
     pickup_times = pd.DataFrame(clean_data['lpep_pickup_datetime'])
+
     if len(pickup_times) != 0:
         pickup_times = pickup_times.reindex(pickup_times['lpep_pickup_datetime'])
         resampled_data = pickup_times['lpep_pickup_datetime'].resample('10T')
         ten_minutes_resample = resampled_data.count()
+
         max_count_start = ten_minutes_resample.idxmax()
         max_count = ten_minutes_resample.max()
         max_count_end = max_count_start + np.timedelta64(10, 'm')
+
         gen_stat['max_count'] = max_count
         gen_stat['max_count_start'] = max_count_start
         gen_stat['max_count_end'] = max_count_end
 
     gen_stat['invalid_rows'] = invalid_rows
+
     if return_count:
         gen_stat['count'] = clean_data.shape[0]
     gen_stat = pd.DataFrame(gen_stat, index=[0])
+
     return gen_stat
 
 
-def missing_dates(data):
-
+def missing_dates(data, return_min_max=False, return_valid=False):
     clean_data = data.dropna().copy()
+
     max_time = clean_data['lpep_pickup_datetime'].max()
     min_time = clean_data['lpep_pickup_datetime'].min()
+
     missing_date = pd.Series(pd.date_range(min_time, max_time, freq='D').date)
-    missing_date.name = 'missing_date'
+    missing_date.name = 'missing_dates'
 
     valid_dates = clean_data['lpep_pickup_datetime'].apply(lambda i: i.date())
 
-    missing_date = pd.DataFrame(missing_date.apply(lambda s: None if s in valid_dates.values else s).dropna())
+    if return_valid:
+        missing_date.name = 'valid_dates'
+        missing_date = pd.DataFrame(missing_date.apply(lambda s: s if s in valid_dates.values else None).dropna())
+    else:
+        missing_date = pd.DataFrame(missing_date.apply(lambda s: None if s in valid_dates.values else s).dropna())
+
+    if return_min_max:
+        if len(missing_date) != 0:
+            missing_date['min'] = None
+            missing_date['min'].iloc[0] = min_time
+            missing_date['max'] = None
+            missing_date['max'].iloc[0] = max_time
+        else:
+            missing_date['min'] = None
+            missing_date['max'] = None
+            missing_date = missing_date.append({'missing_dates': None,
+                                                'min': min_time,
+                                                'max': max_time}, ignore_index=True)
+
     return missing_date
 
 
@@ -119,15 +143,18 @@ def usage_stat(data):
     return stat
 
 
-def trip_stat(data):
+def trip_stat(data, return_count=False):
     clean_data = data.dropna().copy()
     clean_data.loc[:, 'passenger_count'] = clean_data['passenger_count'].astype(int)
     clean_data.loc[:, 'month'] = clean_data['lpep_pickup_datetime'].apply(lambda d: d.month)
 
     if len(clean_data['lpep_pickup_datetime']) != 0:
-        trip_stat = pd.DataFrame(clean_data.groupby(['month', 'passenger_count'])['trip_duration'].mean())
-        trip_stat.loc[:, 'trip_duration'] = pd.to_timedelta(trip_stat['trip_duration'].apply(int), unit='s').apply(get_time)
-    else:
-        trip_stat = pd.DataFrame(['month', 'passenger_count'])
+        trip_stats = pd.DataFrame(clean_data.groupby(['month', 'passenger_count'])['trip_duration'].mean())
+        trip_stats.loc[:, 'trip_duration'] = pd.to_timedelta(trip_stats['trip_duration'].apply(int), unit='s').apply(get_time)
 
-    return trip_stat
+        if return_count:
+            trip_stats['count'] = clean_data.groupby(['month', 'passenger_count'])['trip_duration'].count()
+    else:
+        trip_stats = pd.DataFrame(['month', 'passenger_count', 'trip_duration'])
+
+    return trip_stats
