@@ -30,15 +30,21 @@ def valid_duration(duration):
 
 
 def read_value_data(path):
-    data = []
-    with open(path) as csv_file:
-        reader = csv.reader(csv_file)
-        header = reader.__next__()
-        header_len = len(header)
-        for row in reader:
-            data.append(row[:header_len])
+    data_without_header = pd.read_csv(path, skiprows=1, header=None)
+    header = pd.read_csv(path, nrows=0)
 
-    data = pd.DataFrame(data, columns=header)
+    data_len = data_without_header.shape[1]
+    header_len = header.shape[1]
+
+    if data_len > header_len:
+        len_difference = data_len - header_len
+        columns_to_drop = list(range(data_len)[-len_difference:])
+
+        data = data_without_header.drop(columns_to_drop, axis=1)
+    elif data_len < header_len:
+        raise ValueError(f"Header length is {header_len}, but data length is {data_len}.")
+
+    data.columns = header.columns
     data.columns = np.char.lower(np.array(data.columns, dtype=str))
 
     required_columns = ['lpep_pickup_datetime',
