@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+import sys
+import re
+import subprocess
+import git
+
+args = sys.argv
+
+# get branch name
+repo = git.Repo(search_parent_directories=True)
+branch = repo.active_branch
+print(branch.name)
+branch_name = branch.name
+
+
+if branch_name == 'master':
+	print("Can't push to master.")
+	sys.exit(1)
+
+# get list of pushed files
+get_list_of_files = 'git diff --name-only ' + args[1] + '/' + branch_name
+process = subprocess.Popen(get_list_of_files.split(), stdout=subprocess.PIPE)
+output, error = process.communicate()
+output = output.decode('utf-8')
+
+# checking .py files
+for file_name in output.split():
+	if bool(re.match(r'.*\.py$', file_name)):
+		check_compile = 'python -m py_compile ' + file_name
+		process = subprocess.Popen(check_compile.split(),stdout=subprocess.PIPE)
+		output = process.wait()
+		if bool(output):
+			print("Can't compile: " + file_name)
+			sys.exit(1)
+		else:
+			try:
+				subprocess.call(['rm', '-r', '__pycache__'])
+				subprocess.call(['rm', file_name + 'c'])
+			except NameError:
+				continue
