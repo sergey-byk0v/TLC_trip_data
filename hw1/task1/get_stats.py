@@ -37,8 +37,10 @@ def read_value_data(path):
                         'trip_distance',
                         'total_amount']
 
-    data['lpep_pickup_datetime'] = data['lpep_pickup_datetime'].apply(convert_type(np.datetime64))
-    data['lpep_dropoff_datetime'] = data['lpep_dropoff_datetime'].apply(convert_type(np.datetime64))
+    data['lpep_pickup_datetime'] = data['lpep_pickup_datetime'].apply(convert_type(np.datetime64,
+                                                                                   return_if_exception=pd.NaT))
+    data['lpep_dropoff_datetime'] = data['lpep_dropoff_datetime'].apply(convert_type(np.datetime64,
+                                                                                   return_if_exception=pd.NaT))
     data['trip_distance'] = data['trip_distance'].apply(convert_type(float))
     data['total_amount'] = data['total_amount'].apply(convert_type(float))
     data['passenger_count'] = data['passenger_count'].apply(convert_type(int))
