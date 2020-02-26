@@ -14,4 +14,4 @@ def write_to_csv(filename, data, columns=None, sep=','):
             for key in data.keys():
                 f.write(str(key) + sep + str(data[key]) + '\n')
     else:
-        print('Unknown data type')
+        raise TypeError('Unknown data type')

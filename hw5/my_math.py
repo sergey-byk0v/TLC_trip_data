@@ -27,8 +27,5 @@ def unique_mean(keys, values):
 
 
 def index_by_value(data, value):
-    indexes = []
-    for index in range(len(data)):
-        if data[index] == value:
-            indexes.append(index)
+    indexes = [index for index in range(len(data)) if data[index] == value]
     return indexes
