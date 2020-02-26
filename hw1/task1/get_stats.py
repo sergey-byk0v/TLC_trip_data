@@ -1,36 +1,19 @@
 import pandas as pd
 import numpy as np
-
-
-def convert_type(type_to_convert, return_if_exception=None):
-    def return_function(x):
-        try:
-            x = type_to_convert(x)
-        except Exception:
-            return return_if_exception
-        return x
-    return return_function
-
-
-def get_time(datetime):
-    day_index = 0
-    datetime_str = str(datetime).split()
-    if datetime_str[day_index] == '0':
-        return datetime_str[-1]
-    else:
-        return str(datetime)
-
-
-def valid_duration(duration):
-    if duration < 0:
-        return None
-    else:
-        return duration
+from pandas.errors import EmptyDataError
 
 
 def read_value_data(path):
-    data_without_header = pd.read_csv(path, skiprows=1, header=None)
-    header = pd.read_csv(path, nrows=0)
+    try:
+        header = pd.read_csv(path, nrows=0)
+
+    except EmptyDataError:
+        raise EmptyDataError('Empty file')
+
+    try:
+        data_without_header = pd.read_csv(path, skiprows=1, header=None)
+    except EmptyDataError:
+        raise EmptyDataError("There's only header")
 
     data_len = data_without_header.shape[1]
     header_len = header.shape[1]
@@ -42,6 +25,8 @@ def read_value_data(path):
         data = data_without_header.drop(columns_to_drop, axis=1)
     elif data_len < header_len:
         raise ValueError(f"Header length is {header_len}, but data length is {data_len}.")
+    else:
+        data = data_without_header.copy()
 
     data.columns = header.columns
     data.columns = np.char.lower(np.array(data.columns, dtype=str))
@@ -50,14 +35,10 @@ def read_value_data(path):
                         'lpep_dropoff_datetime',
                         'passenger_count',
                         'trip_distance',
-                        'total_amount',
-                        'trip_duration']
+                        'total_amount']
 
     data['lpep_pickup_datetime'] = data['lpep_pickup_datetime'].apply(convert_type(np.datetime64))
     data['lpep_dropoff_datetime'] = data['lpep_dropoff_datetime'].apply(convert_type(np.datetime64))
-    data['trip_duration'] = data['lpep_dropoff_datetime'] - data['lpep_pickup_datetime']
-    data['trip_duration'] = data['trip_duration'].dt.total_seconds()
-    data['trip_duration'] = data['trip_duration'].apply(valid_duration)
     data['trip_distance'] = data['trip_distance'].apply(convert_type(float))
     data['total_amount'] = data['total_amount'].apply(convert_type(float))
     data['passenger_count'] = data['passenger_count'].apply(convert_type(int))
@@ -69,7 +50,10 @@ def general_stats(data, return_count=True):
     gen_stat = {}
     invalid_rows = np.any(data.isna(), axis=1).sum()
     clean_data = data.dropna().copy()
-    gen_stat['mean_cost'] = clean_data['total_amount'].mean()
+    clean_data['trip_duration'] = trip_durations(clean_data['lpep_pickup_datetime'],
+                                                 clean_data['lpep_dropoff_datetime'])
+    invalid_rows += clean_data['trip_duration'].isna().sum()
+    clean_data = clean_data.dropna()
 
     datetime_durations = pd.to_timedelta(clean_data['trip_duration'], unit='s')
     trip_duration = datetime_durations.apply(get_time)
@@ -107,8 +91,12 @@ def missing_dates(data, return_min_max=False, return_valid=False):
     max_time = clean_data['lpep_pickup_datetime'].max()
     min_time = clean_data['lpep_pickup_datetime'].min()
 
-    missing_date = pd.Series(pd.date_range(min_time, max_time, freq='D').date)
-    missing_date.name = 'missing_dates'
+    if max_time is pd.NaT or min_time is pd.NaT:
+        date_range = None
+    else:
+        date_range = pd.date_range(min_time, max_time, freq='D').date
+    missing_date = pd.Series(date_range)
+    missing_date.name = 'missing_date'
 
     valid_dates = clean_data['lpep_pickup_datetime'].apply(lambda i: i.date())
 
@@ -145,8 +133,12 @@ def usage_stat(data):
 
 def trip_stat(data, return_count=False):
     clean_data = data.dropna().copy()
+    clean_data['trip_duration'] = trip_durations(clean_data['lpep_pickup_datetime'],
+                                                 clean_data['lpep_dropoff_datetime'])
+
     clean_data.loc[:, 'passenger_count'] = clean_data['passenger_count'].astype(int)
     clean_data.loc[:, 'month'] = clean_data['lpep_pickup_datetime'].apply(lambda d: d.month)
+    clean_data = clean_data.dropna()
 
     if len(clean_data['lpep_pickup_datetime']) != 0:
         trip_stats = pd.DataFrame(clean_data.groupby(['month', 'passenger_count'])['trip_duration'].mean())
@@ -155,6 +147,39 @@ def trip_stat(data, return_count=False):
         if return_count:
             trip_stats['count'] = clean_data.groupby(['month', 'passenger_count'])['trip_duration'].count()
     else:
-        trip_stats = pd.DataFrame(['month', 'passenger_count', 'trip_duration'])
+        trip_stats = pd.DataFrame(columns=['month', 'passenger_count', 'trip_duration'])
 
     return trip_stats
+
+
+def trip_durations(start, end):
+    trip_duration = end - start
+    trip_duration = trip_duration.dt.total_seconds()
+    trip_duration = trip_duration.apply(valid_duration)
+    return trip_duration
+
+
+def convert_type(type_to_convert, return_if_exception=None):
+    def return_function(x):
+        try:
+            x = type_to_convert(x)
+        except Exception:
+            return return_if_exception
+        return x
+    return return_function
+
+
+def get_time(datetime):
+    day_index = 0
+    datetime_str = str(datetime).split()
+    if datetime_str[day_index] == '0':
+        return datetime_str[-1]
+    else:
+        return str(datetime)
+
+
+def valid_duration(duration):
+    if duration < 0:
+        return None
+    else:
+        return duration
