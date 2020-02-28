@@ -13,7 +13,7 @@ def read_value_data(path):
     try:
         data_without_header = pd.read_csv(path, skiprows=1, header=None)
     except EmptyDataError:
-        raise EmptyDataError("There's only header")
+        raise EmptyDataError("There's no data")
 
     data_len = data_without_header.shape[1]
     header_len = header.shape[1]
@@ -55,6 +55,7 @@ def general_stats(data, return_count=True):
     clean_data['trip_duration'] = trip_durations(clean_data['lpep_pickup_datetime'],
                                                  clean_data['lpep_dropoff_datetime'])
     invalid_rows += clean_data['trip_duration'].isna().sum()
+    gen_stat['invalid_rows'] = invalid_rows
     clean_data = clean_data.dropna()
 
     datetime_durations = pd.to_timedelta(clean_data['trip_duration'], unit='s')
@@ -67,6 +68,19 @@ def general_stats(data, return_count=True):
     gen_stat['mean_cost'] = clean_data['total_amount'].mean()
 
     pickup_times = pd.DataFrame(clean_data['lpep_pickup_datetime'])
+    count_info = trip_count_info(pickup_times)
+    gen_stat['max_count'] = count_info['max_count']
+    gen_stat['max_count_start'] = count_info['max_count_start']
+    gen_stat['max_count_end'] = count_info['max_count_end']
+
+    if return_count:
+        gen_stat['count'] = clean_data.shape[0]
+    gen_stat = pd.DataFrame(gen_stat, index=[0])
+    return gen_stat
+
+
+def trip_count_info(pickup_times):
+    return_stat = {}
     if len(pickup_times) != 0:
         pickup_times = pickup_times.reindex(pickup_times['lpep_pickup_datetime'])
         resampled_data = pickup_times['lpep_pickup_datetime'].resample('10T')
@@ -76,20 +90,15 @@ def general_stats(data, return_count=True):
         max_count = ten_minutes_resample.max()
         max_count_end = max_count_start + np.timedelta64(10, 'm')
 
-        gen_stat['max_count'] = max_count
-        gen_stat['max_count_start'] = max_count_start
-        gen_stat['max_count_end'] = max_count_end
+        return_stat['max_count'] = max_count
+        return_stat['max_count_start'] = max_count_start
+        return_stat['max_count_end'] = max_count_end
     else:
-        gen_stat['max_count'] = None
-        gen_stat['max_count_start'] = None
-        gen_stat['max_count_end'] = None
+        return_stat['max_count'] = None
+        return_stat['max_count_start'] = None
+        return_stat['max_count_end'] = None
 
-    gen_stat['invalid_rows'] = invalid_rows
-
-    if return_count:
-        gen_stat['count'] = clean_data.shape[0]
-    gen_stat = pd.DataFrame(gen_stat, index=[0])
-    return gen_stat
+    return return_stat
 
 
 def missing_dates(data):
@@ -133,7 +142,7 @@ def trip_stat(data):
         trip_stat = pd.DataFrame(clean_data.groupby(['month', 'passenger_count'])['trip_duration'].mean())
         trip_stat.loc[:, 'trip_duration'] = pd.to_timedelta(trip_stat['trip_duration'].apply(int), unit='s').apply(get_time)
     else:
-        trip_stat = pd.DataFrame(columns=['month', 'passenger_count'])
+        trip_stat = pd.DataFrame(columns=['month', 'passenger_count', 'trip_duration'])
 
     return trip_stat
 
@@ -154,6 +163,9 @@ def valid_duration(duration):
 
 def get_time(datetime):
     day_index = 0
+    print(type(datetime))
+    if isinstance(datetime, pd.NaT):
+        return None
     datetime_str = str(datetime).split()
     if datetime_str[day_index] == '0':
         return datetime_str[-1]
