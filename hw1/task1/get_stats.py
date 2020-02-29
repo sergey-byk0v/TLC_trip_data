@@ -59,10 +59,10 @@ def general_stats(data, return_count=True):
     clean_data = clean_data.dropna()
 
     datetime_durations = pd.to_timedelta(clean_data['trip_duration'], unit='s')
-    trip_duration = datetime_durations.apply(get_time)
+    trip_duration = datetime_durations.apply(format_timedelta)
     clean_data.loc[:, 'trip_duration'] = trip_duration
 
-    longest = get_time(clean_data['trip_duration'].max())
+    longest = format_timedelta(clean_data['trip_duration'].max())
 
     gen_stat['longest_ride'] = longest
     gen_stat['mean_cost'] = clean_data['total_amount'].mean()
@@ -114,9 +114,8 @@ def missing_dates(data):
     missing_date = pd.Series(date_range)
     missing_date.name = 'missing_date'
 
-    valid_dates = clean_data['lpep_pickup_datetime'].apply(lambda i: i.date())
-
-    missing_date = pd.DataFrame(missing_date.apply(lambda s: None if s in valid_dates.values else s).dropna())
+    valid_dates = clean_data['lpep_pickup_datetime'].dt.date
+    missing_date = pd.DataFrame(missing_date.loc[missing_date.isin(valid_dates)])
     return missing_date
 
 
@@ -135,12 +134,13 @@ def trip_stat(data):
                                                  clean_data['lpep_dropoff_datetime'])
 
     clean_data.loc[:, 'passenger_count'] = clean_data['passenger_count'].astype(int)
-    clean_data.loc[:, 'month'] = clean_data['lpep_pickup_datetime'].apply(lambda d: d.month)
+    clean_data.loc[:, 'month'] = clean_data['lpep_pickup_datetime'].dt.month
     clean_data = clean_data.dropna()
 
     if len(clean_data['lpep_pickup_datetime']) != 0:
         trip_stat = pd.DataFrame(clean_data.groupby(['month', 'passenger_count'])['trip_duration'].mean())
-        trip_stat.loc[:, 'trip_duration'] = pd.to_timedelta(trip_stat['trip_duration'].apply(int), unit='s').apply(get_time)
+        trip_stat.loc[:, 'trip_duration'] = pd.to_timedelta(trip_stat['trip_duration'].astype(int),
+                                                            unit='s').apply(format_timedelta)
     else:
         trip_stat = pd.DataFrame(columns=['month', 'passenger_count', 'trip_duration'])
 
@@ -149,8 +149,9 @@ def trip_stat(data):
 
 def trip_durations(start, end):
     trip_duration = end - start
-    trip_duration = trip_duration.dt.total_seconds()
-    trip_duration = trip_duration.apply(valid_duration)
+    trip_duration = trip_duration.dt.total_seconds().copy()
+    invalid_dates_indexes = trip_duration < 0
+    trip_duration.loc[invalid_dates_indexes] = None
     return trip_duration
 
 
@@ -161,12 +162,12 @@ def valid_duration(duration):
         return duration
 
 
-def get_time(datetime):
+def format_timedelta(datetime):
     day_index = 0
-    print(type(datetime))
-    if isinstance(datetime, pd.NaT):
-        return None
     datetime_str = str(datetime).split()
+    if len(datetime_str) <= 1:
+        return None
+
     if datetime_str[day_index] == '0':
         return datetime_str[-1]
     else:
