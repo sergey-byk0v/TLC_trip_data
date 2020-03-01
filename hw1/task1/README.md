@@ -1,0 +1,29 @@
+## Big data student lab homework
+
+
+ This python script analyze data from NYC taxi and limousine 
+ commission and write it into csv files:  
+ * gen_stat.csv - mean cost, longest ride, time of 10 min
+  interval, which contain max amount of trips and amount of
+  invalid rows  
+ * missing_dates.csv - dates of invalid rows  
+ * trip_stat.csv - month, average passenger count and mean
+ trip duration
+ * usage_stat.csv - trip count per day
+ 
+ To launch this script launch main file with python and give file path via arguments.
+   ```Shell    
+  python main.py [-dir] file_paths   
+  ```  
+ If `-dir` then instead of file path use path to directory with csv files.  
+  
+  More data: https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.page
+
+
+#### Q&A:  
+    - найти экстримальные значения стоимости -+ 3 стандартного отклонения (из предположения нормалньости данных)
+    - вычислить среднюю продолжительность поездки и их количество для каждого пункта посадки (для данных с имеющимся id мест использовать его, а для данных с геолокацией произвести кластеризацию и метку кластера использовать как пункт)
+    - построить диаграмму размаха продолжительности поездки для разного количества пассажиров
+    - найти оплаченые поездки с нулевой длинной маршрута / нулеавм количеством пассажиров
+    - построить зависимость продолжительности поездки от времени/дня недели (для приблизительной оценки при заказе)   
+
