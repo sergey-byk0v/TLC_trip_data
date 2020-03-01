@@ -1,24 +1,20 @@
 from statistics import mean
+from collections import defaultdict
 
 
 def unique_count(data):
-    counts = {}
+    counts = defaultdict(int)
     for value in data:
-        if value not in counts.keys():
-            counts[value] = 1
-        else:
-            counts[value] += 1
+        counts[value] += 1
 
     return counts
 
 
 def unique_mean(keys, values):
-    means = {}
-    for num in range(len(keys)):
-        if keys[num] not in means.keys():
-            means[keys[num]] = [values[num]]
-        else:
-            means[keys[num]].append(values[num])
+    means = defaultdict(list)
+
+    for key, value in zip(keys, values):
+        means[key].append(value)
 
     for key in means:
         means[key] = mean(means[key])

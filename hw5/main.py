@@ -6,13 +6,15 @@ from files import read_csv, write_to_csv
 
 
 def _main():
-    _, data = read_csv(sys.argv[1])
+    data = read_csv(sys.argv[1])
     users = [d[3] for d in data]
     prices = [float(d[2]) for d in data]
     stores = [d[1] for d in data]
     items = [d[0] for d in data]
+
     print(f'Unique value of stores: {len(set(stores))}')
     print(f'Unique value of items: {len(set(items))}')
+
     unique_users = unique_count(users)
     print(f'User with max price count: {max(unique_users, key=unique_users.get)}')
 
@@ -22,6 +24,7 @@ def _main():
         print(f'Store {store}: {stores_count[store]}')
 
     csv_name = 'mean_prices.csv'
+
     write_to_csv(csv_name, unique_mean(items, prices), columns=['ited_id', 'mean_price'])
     print(f"Mean prices was writen to {csv_name}")
 
