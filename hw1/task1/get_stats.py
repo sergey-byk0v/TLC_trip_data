@@ -7,13 +7,13 @@ def read_value_data(path):
     try:
         header = pd.read_csv(path, nrows=0)
 
-    except EmptyDataError:
-        raise EmptyDataError('Empty file')
+    except EmptyDataError as error:
+        raise EmptyDataError('Empty file') from error
 
     try:
         data_without_header = pd.read_csv(path, skiprows=1, header=None)
-    except EmptyDataError:
-        raise EmptyDataError("There's only header")
+    except EmptyDataError as error:
+        raise EmptyDataError("There's only header") from error
 
     data_len = data_without_header.shape[1]
     header_len = header.shape[1]
@@ -53,16 +53,32 @@ def general_stats(data, return_count=True):
     clean_data['trip_duration'] = trip_durations(clean_data['lpep_pickup_datetime'],
                                                  clean_data['lpep_dropoff_datetime'])
     invalid_rows += clean_data['trip_duration'].isna().sum()
+    gen_stat['invalid_rows'] = invalid_rows
     clean_data = clean_data.dropna()
 
     datetime_durations = pd.to_timedelta(clean_data['trip_duration'], unit='s')
-    trip_duration = datetime_durations.apply(get_time)
+    trip_duration = datetime_durations.apply(format_timedelta)
     clean_data.loc[:, 'trip_duration'] = trip_duration
 
-    longest = get_time(clean_data['trip_duration'].max())
-    gen_stat['longest_ride'] = longest
-    pickup_times = pd.DataFrame(clean_data['lpep_pickup_datetime'])
+    longest = format_timedelta(clean_data['trip_duration'].max())
 
+    gen_stat['longest_ride'] = longest
+    gen_stat['mean_cost'] = clean_data['total_amount'].mean()
+
+    pickup_times = pd.DataFrame(clean_data['lpep_pickup_datetime'])
+    count_info = trip_count_info(pickup_times)
+    gen_stat['max_count'] = count_info['max_count']
+    gen_stat['max_count_start'] = count_info['max_count_start']
+    gen_stat['max_count_end'] = count_info['max_count_end']
+
+    if return_count:
+        gen_stat['count'] = clean_data.shape[0]
+    gen_stat = pd.DataFrame(gen_stat, index=[0])
+    return gen_stat
+
+
+def trip_count_info(pickup_times):
+    return_stat = {}
     if len(pickup_times) != 0:
         pickup_times = pickup_times.reindex(pickup_times['lpep_pickup_datetime'])
         resampled_data = pickup_times['lpep_pickup_datetime'].resample('10T')
@@ -72,17 +88,15 @@ def general_stats(data, return_count=True):
         max_count = ten_minutes_resample.max()
         max_count_end = max_count_start + np.timedelta64(10, 'm')
 
-        gen_stat['max_count'] = max_count
-        gen_stat['max_count_start'] = max_count_start
-        gen_stat['max_count_end'] = max_count_end
+        return_stat['max_count'] = max_count
+        return_stat['max_count_start'] = max_count_start
+        return_stat['max_count_end'] = max_count_end
+    else:
+        return_stat['max_count'] = None
+        return_stat['max_count_start'] = None
+        return_stat['max_count_end'] = None
 
-    gen_stat['invalid_rows'] = invalid_rows
-
-    if return_count:
-        gen_stat['count'] = clean_data.shape[0]
-    gen_stat = pd.DataFrame(gen_stat, index=[0])
-
-    return gen_stat
+    return return_stat
 
 
 def missing_dates(data, return_min_max=False, return_valid=False):
@@ -98,13 +112,14 @@ def missing_dates(data, return_min_max=False, return_valid=False):
     missing_date = pd.Series(date_range)
     missing_date.name = 'missing_date'
 
-    valid_dates = clean_data['lpep_pickup_datetime'].apply(lambda i: i.date())
+    valid_dates = clean_data['lpep_pickup_datetime'].dt.date
+
 
     if return_valid:
         missing_date.name = 'valid_dates'
-        missing_date = pd.DataFrame(missing_date.apply(lambda s: s if s in valid_dates.values else None).dropna())
+        missing_date = pd.DataFrame(missing_date.loc[np.logical_not(missing_date.isin(valid_dates))])
     else:
-        missing_date = pd.DataFrame(missing_date.apply(lambda s: None if s in valid_dates.values else s).dropna())
+        missing_date = pd.DataFrame(missing_date.loc[missing_date.isin(valid_dates)])
 
     if return_min_max:
         if len(missing_date) != 0:
@@ -137,13 +152,13 @@ def trip_stat(data, return_count=False):
                                                  clean_data['lpep_dropoff_datetime'])
 
     clean_data.loc[:, 'passenger_count'] = clean_data['passenger_count'].astype(int)
-    clean_data.loc[:, 'month'] = clean_data['lpep_pickup_datetime'].apply(lambda d: d.month)
+    clean_data.loc[:, 'month'] = clean_data['lpep_pickup_datetime'].dt.month
     clean_data = clean_data.dropna()
 
     if len(clean_data['lpep_pickup_datetime']) != 0:
         trip_stats = pd.DataFrame(clean_data.groupby(['month', 'passenger_count'])['trip_duration'].mean())
-        trip_stats.loc[:, 'trip_duration'] = pd.to_timedelta(trip_stats['trip_duration'].apply(int), unit='s').apply(get_time)
-
+        trip_stats.loc[:, 'trip_duration'] = pd.to_timedelta(trip_stats['trip_duration'].astype(int),
+                                                            unit='s').apply(format_timedelta)
         if return_count:
             trip_stats['count'] = clean_data.groupby(['month', 'passenger_count'])['trip_duration'].count()
     else:
@@ -154,8 +169,9 @@ def trip_stat(data, return_count=False):
 
 def trip_durations(start, end):
     trip_duration = end - start
-    trip_duration = trip_duration.dt.total_seconds()
-    trip_duration = trip_duration.apply(valid_duration)
+    trip_duration = trip_duration.dt.total_seconds().copy()
+    invalid_dates_indexes = trip_duration < 0
+    trip_duration.loc[invalid_dates_indexes] = None
     return trip_duration
 
 
@@ -169,17 +185,10 @@ def convert_type(type_to_convert, return_if_exception=None):
     return return_function
 
 
-def get_time(datetime):
+def format_timedelta(datetime):
     day_index = 0
     datetime_str = str(datetime).split()
     if datetime_str[day_index] == '0':
         return datetime_str[-1]
     else:
         return str(datetime)
-
-
-def valid_duration(duration):
-    if duration < 0:
-        return None
-    else:
-        return duration
