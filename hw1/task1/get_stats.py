@@ -80,6 +80,7 @@ def trip_count_info(pickup_times):
     return_stat = {}
     if len(pickup_times) != 0:
         pickup_times = pickup_times.reindex(pickup_times['lpep_pickup_datetime'])
+        pickup_times.loc[:] = 1
         resampled_data = pickup_times['lpep_pickup_datetime'].resample('10T')
         ten_minutes_resample = resampled_data.count()
 
