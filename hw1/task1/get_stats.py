@@ -169,13 +169,3 @@ def format_timedelta(datetime):
         return datetime_str[-1]
     else:
         return str(datetime)
-
-
-def convert_type(type_to_convert, return_if_exception=None):
-    def return_function(x):
-        try:
-            x = type_to_convert(x)
-        except Exception:
-            return return_if_exception
-        return x
-    return return_function
