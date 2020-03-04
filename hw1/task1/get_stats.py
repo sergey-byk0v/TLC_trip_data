@@ -57,7 +57,7 @@ def general_stats(data, return_count=True):
     clean_data = clean_data.dropna()
 
     datetime_durations = pd.to_timedelta(clean_data['trip_duration'], unit='s')
-    trip_duration = datetime_durations.apply(format_timedelta)
+    trip_duration = format_timedelta(datetime_durations)
     clean_data.loc[:, 'trip_duration'] = trip_duration
     longest = clean_data['trip_duration'].max()
 
@@ -136,8 +136,9 @@ def trip_stat(data):
 
     if len(clean_data['lpep_pickup_datetime']) != 0:
         trip_stat = pd.DataFrame(clean_data.groupby(['month', 'passenger_count'])['trip_duration'].mean())
-        trip_stat.loc[:, 'trip_duration'] = pd.to_timedelta(trip_stat['trip_duration'].astype(int),
-                                                            unit='s').apply(format_timedelta)
+        durations = pd.to_timedelta(trip_stat['trip_duration'].astype(int), unit='s')
+        trip_stat.loc[:, 'trip_duration'] = format_timedelta(durations)
+
     else:
         trip_stat = pd.DataFrame(columns=['month', 'passenger_count', 'trip_duration'])
 
@@ -159,13 +160,9 @@ def valid_duration(duration):
         return duration
 
 
-def format_timedelta(datetime):
-    day_index = 0
-    datetime_str = str(datetime).split()
-    if len(datetime_str) <= 1:
-        return None
-
-    if datetime_str[day_index] == '0':
-        return datetime_str[-1]
-    else:
-        return str(datetime)
+def format_timedelta(times):
+    return_times = times.astype(str)
+    regex = r'((?:[01]\d|2[0123]):(?:[012345]\d):(?:[012345]\d))'
+    zero_days_index = times.dt.days == 0
+    return_times[zero_days_index] = return_times[zero_days_index].str.extract(regex, expand=False)
+    return return_times
