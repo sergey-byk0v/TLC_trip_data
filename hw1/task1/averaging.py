@@ -61,7 +61,7 @@ def average_trip(trip_stats):
     avg_data['trip*count'] = avg_data['trip_duration'] * avg_data['count']
     avg_data = avg_data.groupby(level=[0, 1]).sum()
     avg_data['trip_duration'] = avg_data['trip*count'] / avg_data['count']
-    avg_data['trip_duration'] = pd.to_timedelta(avg_data['trip_duration'].astype(int)
-                                                , unit='s').apply(stat.format_timedelta)
+    durations = pd.to_timedelta(avg_data['trip_duration'].astype(int), unit='s')
+    avg_data['trip_duration'] = stat.format_timedelta(durations)
 
     return avg_data.drop(columns=['count', 'trip*count'])
