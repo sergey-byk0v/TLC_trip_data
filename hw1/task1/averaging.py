@@ -33,7 +33,7 @@ def average_missing(missing_stats):
 
     global_dates = pd.Series(pd.date_range(global_min, global_max, freq='D').date)
     valid_dates = missing_stats['valid_dates']
-    global_misses = global_dates.apply(lambda d: None if d in valid_dates.values else d).dropna()
+    global_misses = global_dates.loc[np.logical_not(global_dates.isin(valid_dates.values))]
 
     return pd.DataFrame(global_misses, columns=['missing_date'])
 
@@ -61,6 +61,7 @@ def average_trip(trip_stats):
     avg_data['trip*count'] = avg_data['trip_duration'] * avg_data['count']
     avg_data = avg_data.groupby(level=[0, 1]).sum()
     avg_data['trip_duration'] = avg_data['trip*count'] / avg_data['count']
-    avg_data['trip_duration'] = pd.to_timedelta(avg_data['trip_duration'].apply(int), unit='s').apply(stat.format_timedelta)
+    avg_data['trip_duration'] = pd.to_timedelta(avg_data['trip_duration'].astype(int)
+                                                , unit='s').apply(stat.format_timedelta)
 
     return avg_data.drop(columns=['count', 'trip*count'])

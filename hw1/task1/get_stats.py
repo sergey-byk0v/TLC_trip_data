@@ -37,11 +37,11 @@ def read_value_data(path):
                         'trip_distance',
                         'total_amount']
 
-    data['lpep_pickup_datetime'] = data['lpep_pickup_datetime'].apply(convert_type(np.datetime64))
-    data['lpep_dropoff_datetime'] = data['lpep_dropoff_datetime'].apply(convert_type(np.datetime64))
-    data['trip_distance'] = data['trip_distance'].apply(convert_type(float))
-    data['total_amount'] = data['total_amount'].apply(convert_type(float))
-    data['passenger_count'] = data['passenger_count'].apply(convert_type(int))
+    data['lpep_pickup_datetime'] = pd.to_datetime(data['lpep_pickup_datetime'], errors='coerce')
+    data['lpep_dropoff_datetime'] = pd.to_datetime(data['lpep_dropoff_datetime'], errors='coerce')
+    data['trip_distance'] = pd.to_numeric(data['trip_distance'], downcast='float', errors='coerce')
+    data['total_amount'] = pd.to_numeric(data['total_amount'], downcast='float', errors='coerce')
+    data['passenger_count'] = pd.to_numeric(data['passenger_count'], downcast='float', errors='coerce')
 
     return data[required_columns]
 
@@ -60,7 +60,7 @@ def general_stats(data, return_count=True):
     trip_duration = datetime_durations.apply(format_timedelta)
     clean_data.loc[:, 'trip_duration'] = trip_duration
 
-    longest = format_timedelta(clean_data['trip_duration'].max())
+    longest = clean_data['trip_duration'].max()
 
     gen_stat['longest_ride'] = longest
     gen_stat['mean_cost'] = clean_data['total_amount'].mean()
@@ -158,7 +158,7 @@ def trip_stat(data, return_count=False):
     if len(clean_data['lpep_pickup_datetime']) != 0:
         trip_stats = pd.DataFrame(clean_data.groupby(['month', 'passenger_count'])['trip_duration'].mean())
         trip_stats.loc[:, 'trip_duration'] = pd.to_timedelta(trip_stats['trip_duration'].astype(int),
-                                                            unit='s').apply(format_timedelta)
+                                                            unit='s')# .apply(format_timedelta)
         if return_count:
             trip_stats['count'] = clean_data.groupby(['month', 'passenger_count'])['trip_duration'].count()
     else:
@@ -173,16 +173,6 @@ def trip_durations(start, end):
     invalid_dates_indexes = trip_duration < 0
     trip_duration.loc[invalid_dates_indexes] = None
     return trip_duration
-
-
-def convert_type(type_to_convert, return_if_exception=None):
-    def return_function(x):
-        try:
-            x = type_to_convert(x)
-        except Exception:
-            return return_if_exception
-        return x
-    return return_function
 
 
 def format_timedelta(datetime):
